@@ -23,7 +23,7 @@ public class App {
         options.addOption(Option.builder("t").longOpt("threadNumber").hasArg(true).argName("threadNumber").type(java.lang.Integer.class).required(false).desc("执行下载请求的线程数量,<1,100>").build());
         options.addOption(Option.builder("u").longOpt("urlsFile").hasArg(true).argName("urlsFile").type(java.lang.String.class).required(true).desc("下载链接集合文件，每行作为一个下载链接").build());
         options.addOption(Option.builder("o").longOpt("outputDir").hasArg(true).argName("outputDir").type(java.lang.String.class).required(false).desc("文件保存路径").build());
-        options.addOption(Option.builder("h").longOpt("help").argName("help").type(java.lang.String.class).required(false).desc("文件保存路径").build());
+        options.addOption(Option.builder("h").longOpt("help").argName("help").type(java.lang.String.class).required(false).desc("输出此帮助信息").build());
     }
 
     public static void main(String[] args) {
