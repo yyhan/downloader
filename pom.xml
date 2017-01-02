@@ -4,9 +4,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.cloudin.test</groupId>
-    <artifactId>test</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <groupId>com.cloudin.downloader</groupId>
+    <artifactId>downloader</artifactId>
+    <version>0.1.0.0</version>
+    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
@@ -32,6 +33,7 @@
     </dependencies>
 
     <build>
+
         <plugins>
             <!-- 指定maven编译时的java版本 -->
             <plugin>
@@ -53,11 +55,27 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <configuration>
+                    <archive>
+                        <!--<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>-->
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>com.cloudin.downloader.App</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
             <!-- 解决maven test命令时console出现中文乱码乱码 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1 </version>
+                <version>2.19.1</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.apache.maven.surefire</groupId>
@@ -71,14 +89,23 @@
                     <forkMode>never</forkMode>
                 </configuration>
             </plugin>
-            <!-- 指定maven打war包时资源文件编码 -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
+                <artifactId>maven-assembly-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
-                    <resourceEncoding>UTF-8</resourceEncoding>
+                    <descriptors>
+                        <descriptor>src/main/build/zip.xml</descriptor>
+                    </descriptors>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>zip</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
