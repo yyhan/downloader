@@ -38,6 +38,7 @@ public class App {
             }
             String outputDir = cmd.getOptionValue("outputDir");
 
+
             String urlsFile = cmd.getOptionValue("urlsFile");
 
             Integer threadNumber = null;
@@ -54,6 +55,9 @@ public class App {
 
             if (!app.checkOutPutDir(outputDir) || !app.checkUrlsFile(urlsFile)) {
                 return;
+            }
+            if (!outputDir.endsWith("/")) {
+                outputDir += "/";
             }
 
             List<String> lines = parseUrls(urlsFile);
@@ -76,17 +80,12 @@ public class App {
                 int len = urls.length;
                 int groupCount = len / threadNumber;
                 int less = len % groupCount;
-                ThreadOverEventListener threadOverEventListener;
-                if (less > 0) {
-                    threadOverEventListener = new ThreadOverEventListener(len, threadNumber + 1);
-                    new DownloadThread(ArrayUtils.subarray(urls, threadNumber * groupCount, len), outputDir, threadOverEventListener).start();
-                } else {
-                    threadOverEventListener = new ThreadOverEventListener(len, threadNumber);
-                }
+                ThreadOverEventListener threadOverEventListener= new ThreadOverEventListener(len, threadNumber);
 
-                for (int i = 0; i < threadNumber; i++) {
+                for (int i = 0, o = threadNumber - 1; i < o; i++) {
                     new DownloadThread(ArrayUtils.subarray(urls, i * groupCount, (i + 1) * groupCount), outputDir, threadOverEventListener).start();
                 }
+                new DownloadThread(ArrayUtils.subarray(urls, (threadNumber - 1) * groupCount, len), outputDir, threadOverEventListener).start();
 
             }
         }
@@ -104,17 +103,17 @@ public class App {
         private long startTime;
 
 
-        public ThreadOverEventListener(int downloadCount, int threadNumber) {
+        public ThreadOverEventListener(int expectedCount, int threadNumber) {
             this.displayStr = new ArrayList<>(threadNumber);
             this.threadNumber = threadNumber;
-            this.downloadInfo = new DownloadInfo(0,0,0,0);
+            this.downloadInfo = new DownloadInfo(expectedCount, 0, 0, 0);
             this.startTime = System.currentTimeMillis();
         }
 
         @Override
         public synchronized void exec(DownloadInfo info) {
             System.out.printf("[%s] is over \n", Thread.currentThread().getName());
-            displayStr.add(String.format("[%s] expectedCount = %d, successCount = %d, errorCount = %d, taking = %d",
+            displayStr.add(String.format("[%s] expectedCount = %d, successCount = %d, errorCount = %d, taking = %d ms",
                     Thread.currentThread().getName(), info.getExpectedCount(), info.getSuccessCount(), info.getErrorCount(), info.getTimeConsume()));
             downloadInfo.setSuccessCount(downloadInfo.getSuccessCount() + info.getSuccessCount());
             downloadInfo.setErrorCount(downloadInfo.getErrorCount() + info.getErrorCount());
@@ -127,7 +126,7 @@ public class App {
                     System.out.println(s);
                 }
                 System.out.println("下载统计：");
-                System.out.printf("expectedCount = %d, successCount = %d, errorCount = %d, taking = %d\n\n",
+                System.out.printf("expectedCount = %d, successCount = %d, errorCount = %d, taking = %d ms\n\n",
                         downloadInfo.getExpectedCount(), downloadInfo.getSuccessCount(), downloadInfo.getErrorCount(), downloadInfo.getTimeConsume());
                 System.out.printf("bye bye\n\n");
                 System.exit(0);

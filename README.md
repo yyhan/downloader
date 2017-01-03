@@ -17,3 +17,13 @@ usage: downloader [-h] [-o <outputDir>] [-t <threadNumber>] -u <urlsFile>
 ``` batch
 java downloader.jar -u D:/test/urls.txt -o D:/test/output/ -t 10
 ```
+
+## urlsFile说明
+
+urlsFile文件里记录了所有的下载链接，每行作为一个下载链接。
+
+例如：
+```text
+http://localhost/test/download/hello-20170101.txt?token=123456
+```
+下载成功后，将会保存到`${outputDir}\hello-20170101.txt`
