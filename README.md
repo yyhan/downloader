@@ -1,5 +1,8 @@
 ## downloader
 用于从一个文本文件里读取下载链接并批量下载的java应用程序。
+
+[下载地址](https://github.com/yyhan/downloader/releases)
+
 ## 使用说明
 将文件解压到当前目录，然后根据自己的需求修改start.bat文件，然后双击start.bat执行。
 
@@ -27,3 +30,10 @@ urlsFile文件里记录了所有的下载链接，每行作为一个下载链接
 http://localhost/test/download/hello-20170101.txt?token=123456
 ```
 下载成功后，将会保存到`${outputDir}\hello-20170101.txt`
+
+## Bugs and Feedback
+
+For bugs, questions and discussions please use the [Github Issues](https://github.com/ReactiveX/RxJava/issues).
+
+## License
+downloader is released under the [Apache 2.0 license](LICENSE). 
