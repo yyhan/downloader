@@ -33,7 +33,7 @@ http://localhost/test/download/hello-20170101.txt?token=123456
 
 ## Bugs and Feedback
 
-For bugs, questions and discussions please use the [Github Issues](https://github.com/ReactiveX/RxJava/issues).
+For bugs, questions and discussions please use the [Github Issues](https://github.com/yyhan/downloader/issues).
 
 ## License
 downloader is released under the [Apache 2.0 license](LICENSE). 
