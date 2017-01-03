@@ -8,8 +8,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by YFHan on 2017/1/1 0001.
@@ -30,7 +30,7 @@ public class App {
         App app = new App();
 
         CommandLine cmd = app.parseCmd(args);
-        if (cmd == null || !cmd.hasOption("urlsFile") || cmd.hasOption("h") || cmd.hasOption("help")) {
+        if (cmd == null || !cmd.hasOption("urlsFile") || cmd.hasOption("help")) {
             app.printHelp();
         } else {
             for (String line : cmd.getArgList()) {
@@ -78,14 +78,14 @@ public class App {
                 int less = len % groupCount;
                 ThreadOverEventListener threadOverEventListener;
                 if (less > 0) {
-                    threadOverEventListener = new ThreadOverEventListener(threadNumber + 1);
+                    threadOverEventListener = new ThreadOverEventListener(len, threadNumber + 1);
                     new DownloadThread(ArrayUtils.subarray(urls, threadNumber * groupCount, len), outputDir, threadOverEventListener).start();
                 } else {
-                    threadOverEventListener = new ThreadOverEventListener(threadNumber);
+                    threadOverEventListener = new ThreadOverEventListener(len, threadNumber);
                 }
 
                 for (int i = 0; i < threadNumber; i++) {
-                    new DownloadThread(ArrayUtils.subarray(urls, i, (i + 1) * groupCount), outputDir, threadOverEventListener).start();
+                    new DownloadThread(ArrayUtils.subarray(urls, i * groupCount, (i + 1) * groupCount), outputDir, threadOverEventListener).start();
                 }
 
             }
@@ -93,24 +93,43 @@ public class App {
     }
 
     public interface IThreadOverEventListener {
-        void exec(Thread thread);
+        void exec(DownloadInfo info);
     }
 
     public static class ThreadOverEventListener implements IThreadOverEventListener {
 
-        private AtomicInteger counter;
+        private int threadNumber;
+        private List<String> displayStr;
+        private DownloadInfo downloadInfo;
+        private long startTime;
 
 
-        public ThreadOverEventListener(int countValue) {
-            counter = new AtomicInteger(countValue);
+        public ThreadOverEventListener(int downloadCount, int threadNumber) {
+            this.displayStr = new ArrayList<>(threadNumber);
+            this.threadNumber = threadNumber;
+            this.downloadInfo = new DownloadInfo(0,0,0,0);
+            this.startTime = System.currentTimeMillis();
         }
 
         @Override
-        public void exec(Thread thread) {
-            System.out.printf("[%s] is over \n", thread.getName());
-            int v = counter.decrementAndGet();
-            if (v == 0) {
+        public synchronized void exec(DownloadInfo info) {
+            System.out.printf("[%s] is over \n", Thread.currentThread().getName());
+            displayStr.add(String.format("[%s] expectedCount = %d, successCount = %d, errorCount = %d, taking = %d",
+                    Thread.currentThread().getName(), info.getExpectedCount(), info.getSuccessCount(), info.getErrorCount(), info.getTimeConsume()));
+            downloadInfo.setSuccessCount(downloadInfo.getSuccessCount() + info.getSuccessCount());
+            downloadInfo.setErrorCount(downloadInfo.getErrorCount() + info.getErrorCount());
+            downloadInfo.setTimeConsume(System.currentTimeMillis() - startTime);
+            if (displayStr.size() == this.threadNumber) {
                 System.out.println("==== 下载结束 ====");
+                System.out.println("各线程下载情况：");
+
+                for (String s : displayStr) {
+                    System.out.println(s);
+                }
+                System.out.println("下载统计：");
+                System.out.printf("expectedCount = %d, successCount = %d, errorCount = %d, taking = %d\n\n",
+                        downloadInfo.getExpectedCount(), downloadInfo.getSuccessCount(), downloadInfo.getErrorCount(), downloadInfo.getTimeConsume());
+                System.out.printf("bye bye\n\n");
                 System.exit(0);
             }
         }
@@ -131,12 +150,59 @@ public class App {
 
         @Override
         public void run() {
+            long start = System.currentTimeMillis();
             Downloader downloader = Downloader.newDownload();
             for (String line : urls) {
                 downloader.download(line, outputDir);
             }
-            System.out.printf("[%s] expectedCount = %05d, successCount = %05d, errorCount = %05d\n", Thread.currentThread().getName(), urls.length, downloader.getCount(), downloader.getErrCount());
-            listener.exec(Thread.currentThread());
+            long end = System.currentTimeMillis();
+            listener.exec(new DownloadInfo(urls.length, downloader.getSuccessCount(), downloader.getErrCount(), end - start));
+        }
+    }
+
+    public static class DownloadInfo {
+        private int expectedCount;
+        private int successCount;
+        private int errorCount;
+        private long timeConsume;
+
+        public DownloadInfo(int expectedCount, int successCount, int errorCount, long timeConsume) {
+            this.expectedCount = expectedCount;
+            this.successCount = successCount;
+            this.errorCount = errorCount;
+            this.timeConsume = timeConsume;
+        }
+
+        public int getExpectedCount() {
+            return expectedCount;
+        }
+
+        public void setExpectedCount(int expectedCount) {
+            this.expectedCount = expectedCount;
+        }
+
+        public int getSuccessCount() {
+            return successCount;
+        }
+
+        public void setSuccessCount(int successCount) {
+            this.successCount = successCount;
+        }
+
+        public int getErrorCount() {
+            return errorCount;
+        }
+
+        public void setErrorCount(int errorCount) {
+            this.errorCount = errorCount;
+        }
+
+        public long getTimeConsume() {
+            return timeConsume;
+        }
+
+        public void setTimeConsume(long timeConsume) {
+            this.timeConsume = timeConsume;
         }
     }
 

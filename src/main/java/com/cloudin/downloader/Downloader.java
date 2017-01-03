@@ -22,6 +22,7 @@ public class Downloader {
 
     private int count = 0;
     private int errCount = 0;
+    private int successCount = 0;
 
 
     public Downloader() {
@@ -36,7 +37,7 @@ public class Downloader {
 
         String tagFileName = getFileName(url);
         if (tagFileName == null) {
-            System.out.printf("[%s][%05d][文件名为空]\n", Thread.currentThread().getName(), count++);
+            System.out.printf("[%s][%d][文件名为空]\n", Thread.currentThread().getName(), count++);
             return;
         }
         Request request = new Request.Builder()
@@ -53,19 +54,23 @@ public class Downloader {
             }
 
             IOUtils.write(resTxt, new FileOutputStream(tagFile), "UTF-8");
-            System.out.printf("[%s][%05d][写入成功] %s\n", Thread.currentThread().getName(), count++, tagFileName);
+            successCount++;
+            System.out.printf("[%s][%d][写入成功] %s\n", Thread.currentThread().getName(), count++, tagFileName);
         } catch (IOException e) {
+            errCount++;
+            System.out.printf("[%s][%d][下载失败] %s\n", Thread.currentThread().getName(), count++, url);
             System.err.print(e);
         }
     }
 
-    public int getCount() {
-        return this.count;
+    public int getSuccessCount() {
+        return this.successCount;
     }
 
     public int getErrCount() {
         return this.errCount;
     }
+
     private String getFileName(String url) {
         Matcher matcher = pattern.matcher(url);
         if (matcher.find()) {
