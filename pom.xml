@@ -6,14 +6,19 @@
 
     <groupId>com.cloudin.downloader</groupId>
     <artifactId>downloader</artifactId>
-    <version>0.1.0.0</version>
+    <version>0.2.0.0</version>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.5.0</version>
+            <version>3.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.25</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

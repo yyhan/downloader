@@ -1,5 +1,6 @@
 package com.cloudin.downloader;
 
+import okhttp3.OkHttpClient;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -10,6 +11,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by YFHan on 2017/1/1 0001.
@@ -20,13 +25,14 @@ public class App {
 
     public App() {
         this.options = new Options();
-        options.addOption(Option.builder("t").longOpt("threadNumber").hasArg(true).argName("threadNumber").type(java.lang.Integer.class).required(false).desc("执行下载请求的线程数量,<1,100>").build());
+        options.addOption(Option.builder("n").longOpt("threadNumber").hasArg(true).argName("threadNumber").type(java.lang.Integer.class).required(false).desc("执行下载请求的线程数量,<1,100>").build());
         options.addOption(Option.builder("u").longOpt("urlsFile").hasArg(true).argName("urlsFile").type(java.lang.String.class).required(true).desc("下载链接集合文件，每行作为一个下载链接").build());
         options.addOption(Option.builder("o").longOpt("outputDir").hasArg(true).argName("outputDir").type(java.lang.String.class).required(false).desc("文件保存路径").build());
+        options.addOption(Option.builder("t").longOpt("type").hasArg(true).argName("type").type(java.lang.String.class).required(false).desc("下载文件类型").build());
         options.addOption(Option.builder("h").longOpt("help").argName("help").type(java.lang.String.class).required(false).desc("输出此帮助信息").build());
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         App app = new App();
 
         CommandLine cmd = app.parseCmd(args);
@@ -38,7 +44,6 @@ public class App {
             }
             String outputDir = cmd.getOptionValue("outputDir");
 
-
             String urlsFile = cmd.getOptionValue("urlsFile");
 
             Integer threadNumber = null;
@@ -49,9 +54,18 @@ public class App {
                 return;
             }
 
+            Integer type = null;
+            try {
+                type = Integer.parseInt(cmd.getOptionValue("type", "1"));
+            } catch (NumberFormatException e) {
+                System.err.println("指定的下载文件类型参数格式错误");
+                return;
+            }
+
             System.out.printf("下载链接集合：%s\n", urlsFile);
             System.out.printf("保存路径：%s\n", outputDir);
             System.out.printf("执行线程数：%s\n", threadNumber);
+            System.out.printf("下载文件类型：%d\n", type);
 
             if (!app.checkOutPutDir(outputDir) || !app.checkUrlsFile(urlsFile)) {
                 return;
@@ -67,26 +81,59 @@ public class App {
                     System.err.println("指定的下载链接为空");
                     return;
                 } else {
-                    Downloader downloader = Downloader.newDownload();
-                    for (String line : lines) {
-                        downloader.download(line, outputDir);
+                    if(type == 1){
+                        Downloader downloader = Downloader.newDownload();
+                        for (String line : lines) {
+                            downloader.download(line, outputDir);
+                        }
+                    } else {
+
+                        CountDownLatch countDownLatch = new CountDownLatch(lines.size());
+
+                        OkHttpClient client = new OkHttpClient();
+
+                        ExecutorService executorService = Executors.newFixedThreadPool(threadNumber);
+
+                        for (String line : lines) {
+                            try {
+                                executorService.submit(new BinaryDownloader(client, line, outputDir, countDownLatch));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        countDownLatch.await();
                     }
                     System.out.println("==== 下载结束 ====");
                 }
             } else {
+                if(type == 1){
+                    String[] urls = lines.toArray(new String[]{});
 
-                String[] urls = lines.toArray(new String[]{});
+                    int len = urls.length;
+                    int groupCount = len / threadNumber;
+                    int less = len % groupCount;
+                    ThreadOverEventListener threadOverEventListener= new ThreadOverEventListener(len, threadNumber);
 
-                int len = urls.length;
-                int groupCount = len / threadNumber;
-                int less = len % groupCount;
-                ThreadOverEventListener threadOverEventListener= new ThreadOverEventListener(len, threadNumber);
+                    for (int i = 0, o = threadNumber - 1; i < o; i++) {
+                        new DownloadThread(ArrayUtils.subarray(urls, i * groupCount, (i + 1) * groupCount), outputDir, threadOverEventListener).start();
+                    }
+                    new DownloadThread(ArrayUtils.subarray(urls, (threadNumber - 1) * groupCount, len), outputDir, threadOverEventListener).start();
+                } else {
+                    CountDownLatch countDownLatch = new CountDownLatch(lines.size());
 
-                for (int i = 0, o = threadNumber - 1; i < o; i++) {
-                    new DownloadThread(ArrayUtils.subarray(urls, i * groupCount, (i + 1) * groupCount), outputDir, threadOverEventListener).start();
+                    OkHttpClient client = new OkHttpClient();
+
+                    ExecutorService executorService = Executors.newFixedThreadPool(threadNumber);
+
+                    for (String line : lines) {
+                        try {
+                            executorService.submit(new BinaryDownloader(client, line, outputDir, countDownLatch));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    countDownLatch.await();
                 }
-                new DownloadThread(ArrayUtils.subarray(urls, (threadNumber - 1) * groupCount, len), outputDir, threadOverEventListener).start();
-
             }
         }
     }
